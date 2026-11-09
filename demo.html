@@ -1,0 +1,40 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><meta name="description" content="Local educational demonstration comparing unsafe and safe handling of reflected input."><title>Local XSS Demonstration | XSS Testing</title><link rel="stylesheet" href="styles.css"></head>
+<body><header class="site-header"><a class="brand" href="index.html">351 CP 81 <span>/ XSS Testing</span></a><nav aria-label="Project navigation"><a href="index.html">Portfolio</a><a href="methodology.html">Methodology</a><a href="findings.html">Findings</a></nav></header>
+<main><section class="page-heading"><p class="eyebrow">LOCAL TEACHING DEMO · DO NOT DEPLOY</p><h1>See how rendering<br><span>changes the result.</span></h1><p class="lede">This page demonstrates a harmless proof of execution in vulnerable mode and literal text rendering in safe mode.</p></section>
+<section class="panel demo-panel"><fieldset><legend>Rendering mode</legend><label class="choice"><input type="radio" name="mode" value="vulnerable" checked> Vulnerable (demonstration)</label><label class="choice"><input type="radio" name="mode" value="safe"> Safe (textContent)</label></fieldset>
+<form id="demo-form"><label for="user-input">Search term / query value</label><textarea id="user-input" rows="4" spellcheck="false" placeholder="Enter plain text or use the harmless sample payload"></textarea><div class="actions"><button class="button" type="submit">Render input</button><button class="button secondary" id="sample" type="button">Use harmless sample</button><button class="button secondary" id="clear" type="button">Clear</button></div></form>
+<p id="mode-note" class="callout" role="status">Vulnerable mode intentionally parses the value as HTML. Use only the built-in harmless sample, and keep this page local.</p><h2>Rendered output</h2><div id="result" class="output" aria-live="polite">Your output will appear here.</div></section>
+<section class="panel"><h2>What to observe</h2><p>The sample creates a broken image with an <code>onerror</code> handler that displays a browser alert. In safe mode, the exact payload appears as text and no alert runs. The intentionally vulnerable mode uses <code>innerHTML</code> only on this local demonstration page.</p><p><a class="text-link" href="findings.html">Read the findings and remediation →</a></p></section></main>
+<footer><span>Local demonstration only</span><a href="index.html">Portfolio</a><a href="findings.html">Findings</a></footer>
+<script>
+(() => {
+  const params = new URLSearchParams(location.search);
+  const input = document.querySelector('#user-input');
+  const result = document.querySelector('#result');
+  const modeNote = document.querySelector('#mode-note');
+  const mode = () => document.querySelector('input[name="mode"]:checked').value;
+  const harmlessPayload = "<img src=x onerror=alert('XSS demo')>";
+  const initial = params.get('q');
+  if (initial !== null) input.value = initial;
+  function render() {
+    const value = input.value;
+    if (mode() === 'vulnerable') {
+      // Intentionally unsafe sink, isolated to this local educational demonstration.
+      result.innerHTML = value || 'Your output will appear here.';
+      modeNote.textContent = 'Vulnerable mode intentionally parses the value as HTML. Use only the built-in harmless sample, and keep this page local.';
+    } else {
+      result.textContent = value || 'Your output will appear here.';
+      modeNote.textContent = 'Safe mode assigns the value as textContent. Markup is shown literally and is not interpreted.';
+    }
+    const url = new URL(location.href);
+    if (value) url.searchParams.set('q', value); else url.searchParams.delete('q');
+    history.replaceState(null, '', url);
+  }
+  document.querySelector('#demo-form').addEventListener('submit', event => { event.preventDefault(); render(); });
+  document.querySelectorAll('input[name="mode"]').forEach(radio => radio.addEventListener('change', render));
+  document.querySelector('#sample').addEventListener('click', () => { input.value = harmlessPayload; render(); });
+  document.querySelector('#clear').addEventListener('click', () => { input.value = ''; render(); });
+  if (initial !== null) render();
+})();
+</script></body></html>
